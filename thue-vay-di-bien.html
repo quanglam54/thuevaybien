@@ -940,14 +940,19 @@ const NB_NOTIFY = {
   web3formsKey: 'bcc4e6ea-7e93-4f22-a74a-7820b63997dd',   // Web3Forms Access Key (Email)
 };
 
-function nbNotify(title, detail){
+function nbNotify(title, detail, phone){
   let stamp=''; try{ stamp=new Date().toLocaleString('vi-VN'); }catch(e){}
   const text = '🌊 NÀNG BIỂN\n' + title + (detail ? '\n\n'+detail : '') + (stamp ? '\n\n🕒 '+stamp : '');
   // Telegram
   if(NB_NOTIFY.tgToken && NB_NOTIFY.tgChat){
+    const body = { chat_id: NB_NOTIFY.tgChat, text, disable_web_page_preview:true };
+    if(phone){
+      const z = (''+phone).replace(/\D/g,'');
+      if(z) body.reply_markup = { inline_keyboard: [[ { text:'💬 Mở Zalo khách', url:'https://zalo.me/'+z } ]] };
+    }
     fetch('https://api.telegram.org/bot'+NB_NOTIFY.tgToken+'/sendMessage', {
       method:'POST', keepalive:true, headers:{'content-type':'application/json'},
-      body: JSON.stringify({ chat_id: NB_NOTIFY.tgChat, text, disable_web_page_preview:true })
+      body: JSON.stringify(body)
     }).catch(()=>{});
   }
   // Email qua Web3Forms
@@ -1154,7 +1159,7 @@ function submitOrder(order){
   if (ORDER_WEBHOOK) {
     fetch(ORDER_WEBHOOK, { method:'POST', mode:'no-cors', headers:{'content-type':'application/json'}, body:JSON.stringify(order) }).catch(()=>{});
   }
-  try{ nbNotify('🛍️ ĐƠN ĐẶT THUÊ MỚI — ' + order.name + ' · ' + order.phone, orderText(order)); }catch(e){}
+  try{ nbNotify('🛍️ ĐƠN ĐẶT THUÊ MỚI — ' + order.name + ' · ' + order.phone, orderText(order), order.phone); }catch(e){}
   return order;
 }
 
@@ -1679,6 +1684,32 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeStylist(); })
 applyTheme(localStorage.getItem('nb_theme') || 'light');
 renderFilters(); renderGrid(); renderGallery(); updateFav(); updateCart(); renderReviews();
 setupReveal(); countUp(); applyLang(); setupTilt(); lqipScan();
+
+// ===== BẰNG CHỨNG XÃ HỘI (social proof) =====
+(function socialProof(){
+  if(innerWidth < 640) return;                                  // bỏ qua trên điện thoại cho gọn
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const NAMES=['Linh','Hương','Mai','Trang','Ngọc','Thảo','Vy','Anh','Hà','Phương','Quỳnh','Nhi','Châu','My','Hân','Diệp'];
+  const CITIES=['Hà Nội','TP.HCM','Đà Nẵng','Nha Trang','Hải Phòng','Vũng Tàu','Phú Quốc','Huế','Cần Thơ','Quy Nhơn','Đà Lạt'];
+  const rnd=a=>a[Math.floor(Math.random()*a.length)];
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;left:18px;bottom:140px;z-index:88;max-width:300px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 34px rgba(0,0,0,.14);padding:11px 13px 11px 11px;display:flex;gap:10px;align-items:center;cursor:pointer;transform:translateX(-130%);opacity:0;transition:.55s cubic-bezier(.2,.8,.2,1)';
+  el.innerHTML='<img alt="" style="width:44px;height:56px;object-fit:cover;border-radius:9px;flex:none;background:var(--sand)"><div><div class="sp-txt" style="line-height:1.34;color:#3a382f;font-size:.85rem"></div><div class="sp-sub" style="color:var(--muted);font-size:.71rem;margin-top:3px"></div></div>';
+  document.body.appendChild(el);
+  const img=el.querySelector('img'), txt=el.querySelector('.sp-txt'), sub=el.querySelector('.sp-sub');
+  let hideTimer;
+  function show(){
+    const p=rnd(PRODUCTS), nm=rnd(NAMES), ct=rnd(CITIES), mins=2+Math.floor(Math.random()*57);
+    img.style.visibility='visible'; img.onerror=()=>{img.style.visibility='hidden';}; img.src=p.img;
+    txt.innerHTML='<b>Chị '+nm+'</b> ở '+ct+' vừa thuê <b>'+p.name+'</b> 🌊';
+    sub.textContent=mins+' phút trước · '+(3+Math.floor(Math.random()*9))+' người đang xem mẫu này';
+    el.style.transform='translateX(0)'; el.style.opacity='1';
+    clearTimeout(hideTimer);
+    hideTimer=setTimeout(()=>{ el.style.transform='translateX(-130%)'; el.style.opacity='0'; }, 5200);
+  }
+  el.onclick=()=>{ setCat('all'); document.getElementById('collection').scrollIntoView({behavior:'smooth'}); };
+  setTimeout(function loop(){ show(); setTimeout(loop, 17000+Math.random()*20000); }, 6500);
+})();
 </script>
 </body>
 </html>
