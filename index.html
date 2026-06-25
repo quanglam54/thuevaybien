@@ -924,6 +924,51 @@ const U = 'https://nhachiron.com/wp-content/uploads/';
 //    → dán URL ".../exec" vào đây.
 //  • Hoặc Formspree: tạo form tại formspree.io → dán URL "https://formspree.io/f/xxxx".
 const ORDER_WEBHOOK = '';
+
+/* ====== CẤU HÌNH THÔNG BÁO (ĐIỀN THÔNG TIN CỦA BẠN VÀO ĐÂY) ======
+   1) TELEGRAM (báo tức thì về điện thoại):
+      - Mở Telegram, chat với @BotFather → /newbot → đặt tên → copy TOKEN dán vào tgToken
+      - Chat với @userinfobot → nó trả về "Id" → dán số đó vào tgChat
+      - Cuối cùng BẤM START / nhắn 1 tin cho bot vừa tạo (bắt buộc, để bot được phép nhắn cho bạn)
+   2) EMAIL (qua Web3Forms, miễn phí):
+      - Vào https://web3forms.com → nhập email của bạn → bấm "Create Access Key"
+      - Mở email xác nhận 1 lần → copy Access Key dán vào web3formsKey
+   Để trống ô nào thì kênh đó tắt. Điền cả 2 thì báo cả 2. */
+const NB_NOTIFY = {
+  tgToken: '8957119203:AAEyITKKifN8QKUJjizaH7mihK-Nrf-CCHg',        // Telegram bot token
+  tgChat:  '8043612824',        // Telegram chat id (của bạn)
+  web3formsKey: 'bcc4e6ea-7e93-4f22-a74a-7820b63997dd',   // Web3Forms Access Key (Email)
+};
+
+function nbNotify(title, detail){
+  let stamp=''; try{ stamp=new Date().toLocaleString('vi-VN'); }catch(e){}
+  const text = '🌊 NÀNG BIỂN\n' + title + (detail ? '\n\n'+detail : '') + (stamp ? '\n\n🕒 '+stamp : '');
+  // Telegram
+  if(NB_NOTIFY.tgToken && NB_NOTIFY.tgChat){
+    fetch('https://api.telegram.org/bot'+NB_NOTIFY.tgToken+'/sendMessage', {
+      method:'POST', keepalive:true, headers:{'content-type':'application/json'},
+      body: JSON.stringify({ chat_id: NB_NOTIFY.tgChat, text, disable_web_page_preview:true })
+    }).catch(()=>{});
+  }
+  // Email qua Web3Forms
+  if(NB_NOTIFY.web3formsKey){
+    fetch('https://api.web3forms.com/submit', {
+      method:'POST', keepalive:true, headers:{'content-type':'application/json', accept:'application/json'},
+      body: JSON.stringify({ access_key: NB_NOTIFY.web3formsKey, subject:'[Nàng Biển] '+title, from_name:'Web Nàng Biển', message: text })
+    }).catch(()=>{});
+  }
+}
+
+/* Bắt mọi cú bấm Zalo / Gọi điện / Email ở bất kỳ đâu trên trang */
+document.addEventListener('click', function(e){
+  const a = e.target.closest('a[href^="tel:"], a[href^="mailto:"], a[href*="zalo.me"], a[href*="zalo."]');
+  if(!a) return;
+  const href = a.getAttribute('href') || '';
+  const kind = href.indexOf('tel:')===0 ? '☎️ Gọi điện'
+             : href.indexOf('mailto:')===0 ? '✉️ Email'
+             : '💬 Zalo';
+  nbNotify('Khách vừa bấm liên hệ: ' + kind, 'Liên kết: ' + href.replace('tel:','').replace('mailto:',''));
+}, true);
 const PRODUCTS = [
   {id:1, name:'Sò Vintage · Nathalia', cat:'ren', catVi:'Ren', price1:490000, price3:560000, deposit:2000000, tag:3620000, extra:50000, badge:'vip', tone:'#efe6da',
     size:'S · 82–64–90 cm', material:'Ren cao cấp, lưới',
@@ -1109,6 +1154,7 @@ function submitOrder(order){
   if (ORDER_WEBHOOK) {
     fetch(ORDER_WEBHOOK, { method:'POST', mode:'no-cors', headers:{'content-type':'application/json'}, body:JSON.stringify(order) }).catch(()=>{});
   }
+  try{ nbNotify('🛍️ ĐƠN ĐẶT THUÊ MỚI — ' + order.name + ' · ' + order.phone, orderText(order)); }catch(e){}
   return order;
 }
 
